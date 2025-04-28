@@ -1,0 +1,3 @@
+references:
+
+https://github.com/nyu-systems/Grendel-GS?tab=readme-ov-file#rendering
