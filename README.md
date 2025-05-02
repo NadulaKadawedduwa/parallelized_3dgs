@@ -1,4 +1,8 @@
 # cmsc714-group-prj-Spring25
+
+## Original dataset used in paper:
+https://storage.googleapis.com/gresearch/refraw360/360_v2.zip
+
 ## How to set up environment
 Check `./setup_env/README.md`
 
