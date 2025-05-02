@@ -13,7 +13,7 @@ Request a 20 minute bash session with 2 gpus:
 
 srun --partition=dpart --qos=medium --gres=gpu:2 --time 0:20:0 --pty bash
 
-run the following to train with two gpus:
+run the following to train with two gpus for resolution 1/8 files, for 200 iterations:
 
 python multi-run.py -s ./bicycle/ --iterations 200 -r 8 --num_gpu=2
 
