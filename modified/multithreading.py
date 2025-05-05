@@ -332,7 +332,7 @@ if __name__ == "__main__":
     print("Optimizing " + args.model_path)
 
 
-    world_size = torch.cuda.device_count()
+    world_size = int(num_gpu)
     processes = []
 
     ## TODO: Modify to allow n gpus
