@@ -1,0 +1,99 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background and Title -->
+  <rect width="800" height="600" fill="#f8f9fa" />
+  <text x="400" y="40" font-family="Arial" font-size="24" font-weight="bold" text-anchor="middle">Distributed 3D Gaussian Splatting Training Flow</text>
+  
+  <!-- GPU Blocks -->
+  <g id="gpu0">
+    <rect x="100" y="100" width="250" height="400" rx="10" fill="#e9ecef" stroke="#212529" stroke-width="2" />
+    <text x="225" y="125" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle">GPU 0 (Rank 0)</text>
+    
+    <!-- Process steps -->
+    <rect x="120" y="150" width="210" height="40" rx="5" fill="#4285f4" />
+    <text x="225" y="175" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Initialize Scene &amp; Model</text>
+    
+    <rect x="120" y="200" width="210" height="40" rx="5" fill="#4285f4" />
+    <text x="225" y="225" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Select Random Viewpoints</text>
+    
+    <rect x="120" y="250" width="210" height="40" rx="5" fill="#4285f4" />
+    <text x="225" y="275" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Render Gaussian Splats</text>
+    
+    <rect x="120" y="300" width="210" height="40" rx="5" fill="#4285f4" />
+    <text x="225" y="325" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Compute Loss</text>
+    
+    <rect x="120" y="350" width="210" height="40" rx="5" fill="#4285f4" />
+    <text x="225" y="375" font-family="Arial" font-size="14" fill="white" text-anchor="middle">All-Reduce Loss (Average)</text>
+    
+    <rect x="120" y="400" width="210" height="40" rx="5" fill="#4285f4" />
+    <text x="225" y="425" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Backward Pass &amp; Optimize</text>
+    
+    <rect x="120" y="450" width="210" height="30" rx="5" fill="#34a853" />
+    <text x="225" y="470" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Save Checkpoints &amp; Log</text>
+  </g>
+  
+  <g id="gpu1">
+    <rect x="450" y="100" width="250" height="400" rx="10" fill="#e9ecef" stroke="#212529" stroke-width="2" />
+    <text x="575" y="125" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle">GPU 1+ (Rank 1+)</text>
+    
+    <!-- Process steps -->
+    <rect x="470" y="150" width="210" height="40" rx="5" fill="#db4437" />
+    <text x="575" y="175" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Initialize Scene &amp; Model</text>
+    
+    <rect x="470" y="200" width="210" height="40" rx="5" fill="#db4437" opacity="1.0" />
+    <text x="575" y="225" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Select Different Viewpoints</text>
+    
+    <rect x="470" y="250" width="210" height="40" rx="5" fill="#db4437" />
+    <text x="575" y="275" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Render Gaussian Splats</text>
+    
+    <rect x="470" y="300" width="210" height="40" rx="5" fill="#db4437" />
+    <text x="575" y="325" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Compute Loss</text>
+    
+    <rect x="470" y="350" width="210" height="40" rx="5" fill="#db4437" />
+    <text x="575" y="375" font-family="Arial" font-size="14" fill="white" text-anchor="middle">All-Reduce Loss (Average)</text>
+    
+    <rect x="470" y="400" width="210" height="40" rx="5" fill="#db4437" />
+    <text x="575" y="425" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Backward Pass &amp; Optimize</text>
+  </g>
+  
+  <!-- Connection arrows -->
+  <g id="connections" stroke="#212529" stroke-width="2">
+    <!-- Barrier synchronization -->
+    <line x1="225" y1="140" x2="575" y2="140" stroke-dasharray="5,5" />
+    <text x="400" y="135" font-family="Arial" font-size="12" text-anchor="middle">Barrier Sync</text>
+    <text x="400" y="155" font-family="Arial" font-size="12" text-anchor="middle">Set Seed</text>
+    
+    <!-- Broadcast viewpoints -->
+    <!-- <path d="M 330 220 L 450 220" stroke="#f4b400" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+    <text x="390" y="215" font-family="Arial" font-size="12" text-anchor="middle" fill="#f4b400" font-weight="bold">Broadcast</text> -->
+    
+    <!-- All-reduce loss -->
+    <path d="M 330 370 L 390 370 L 390 370 L 450 370" stroke="#0f9d58" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+    <path d="M 450 350 L 390 350 L 390 350 L 330 350" stroke="#0f9d58" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+    <text x="390" y="340" font-family="Arial" font-size="12" text-anchor="middle" fill="#0f9d58" font-weight="bold">All-Reduce</text>
+    
+    <!-- Barrier at end -->
+    <line x1="225" y1="445" x2="575" y2="445" stroke-dasharray="5,5" />
+    <text x="400" y="540" font-family="Arial" font-size="12" text-anchor="middle">Barrier Sync</text>
+  </g>
+  
+  <!-- Legend -->
+  <rect x="100" y="530" width="600" height="60" rx="5" fill="white" stroke="#212529" />
+  <circle cx="120" cy="545" r="8" fill="#4285f4" />
+  <text x="135" y="550" font-family="Arial" font-size="14">Rank 0 Process (Primary GPU)</text>
+  
+  <circle cx="360" cy="545" r="8" fill="#db4437" />
+  <text x="370" y="550" font-family="Arial" font-size="14">Worker Processes (Other GPUs)</text>
+  
+  <line x1="120" y1="565" x2="150" y2="565" stroke="#0f9d58" stroke-width="3" />
+  <text x="170" y="570" font-family="Arial" font-size="14">Communication Between GPUs</text>
+  
+  <line x1="400" y1="565" x2="430" y2="565" stroke="#212529" stroke-width="2" stroke-dasharray="5,5" />
+  <text x="450" y="570" font-family="Arial" font-size="14">Synchronization Point</text>
+  
+  <!-- Markers -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#212529" />
+    </marker>
+  </defs>
+</svg>
