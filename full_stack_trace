@@ -1,0 +1,98 @@
+2
+Optimizing
+Rank 1/2 is running on cuda:1
+Rank 0/2 is running on cuda:0
+Output folder: ./output/67d386ef-a [06/05 03:06:10]
+Tensorboard not available: not logging progress [06/05 03:06:10]
+Reading camera 194/194 [06/05 03:06:12]
+Reading camera 194/194 [06/05 03:06:12]
+Loading Training Cameras [06/05 03:06:13]
+Loading Training Cameras [06/05 03:06:13]
+Loading Test Cameras [06/05 03:09:23]
+Loading Test Cameras [06/05 03:09:23]
+Number of points at initialisation :  54275 [06/05 03:09:23]
+Number of points at initialisation :  54275 [06/05 03:09:23]
+Training progress:   0%|                                                                                                                                             | 0/200 [00:00<?, ?it/s]Before barrier and rank is 1 [06/05 03:09:24]
+Training progress:   0%|                                                                                                                                             | 0/200 [00:00<?, ?it/s]Before barrier and rank is 0 [06/05 03:09:24]
+After barrier and rank is 1 [06/05 03:09:24]
+After barrier and rank is 0 [06/05 03:09:24]
+Before broadcast and rank is 0 [06/05 03:09:24]
+Before broadcast and rank is 1 [06/05 03:09:24]
+After broadcast and rank is 0 [06/05 03:09:24]
+The rank of this process is 0 [06/05 03:09:24]
+Before rasterizer runs for rank 0 [06/05 03:09:24]
+##################### CHUNK SIZE IS 4289420
+################################## num rendered is 266687
+#################################### Total memory: 10822.9 MB
+Free memory: 9065.12 MB
+Used memory: 1757.81 MB
+after rasterizer ran for rank 0 [06/05 03:09:24]
+After broadcast and rank is 1 [06/05 03:09:30]
+The rank of this process is 1 [06/05 03:09:30]
+Before rasterizer runs for rank 1 [06/05 03:09:30]
+##################### CHUNK SIZE IS 4289420
+################################## num rendered is 32758
+cudaMemGetInfo failed: an illegal memory access was encountered
+after rasterizer ran for rank 1 [06/05 03:09:30]
+Process Process-2:
+Traceback (most recent call last):
+  File "/nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/fs/nexus-scratch/nkadawed/multi_gpu/gaussian-splatting/multi-run.py", line 310, in init_process
+    fn(rank, size, lp, op, pp, args)
+  File "/fs/nexus-scratch/nkadawed/multi_gpu/gaussian-splatting/multi-run.py", line 297, in run
+    training(rank, size, lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
+  File "/fs/nexus-scratch/nkadawed/multi_gpu/gaussian-splatting/multi-run.py", line 136, in training
+    render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
+  File "/fs/nexus-scratch/nkadawed/multi_gpu/gaussian-splatting/gaussian_renderer/__init__.py", line 127, in render
+    rendered_image = rendered_image.clamp(0, 1)
+RuntimeError: CUDA error: an illegal memory access was encountered
+CUDA kernel errors might be asynchronously reported at some other API call,so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1.
+Training progress:   0%|                                                                                                                                             | 0/200 [00:07<?, ?it/s]
+terminate called after throwing an instance of 'c10::Error'
+  what():  NCCL error in: /opt/conda/conda-bld/pytorch_1659484801627/work/torch/csrc/distributed/c10d/NCCLUtils.hpp:173, unhandled cuda error, NCCL version 2.10.3
+Process Group destroyed on rank 1
+Exception raised from ncclCommAbort at /opt/conda/conda-bld/pytorch_1659484801627/work/torch/csrc/distributed/c10d/NCCLUtils.hpp:173 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7ff65ce7b497 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/site-packages/torch/lib/libc10.so)
+frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7ff65ce52c94 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/site-packages/torch/lib/libc10.so)
+frame #2: <unknown function> + 0x19ea61 (0x7ff696d95a61 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/site-packages/torch/lib/libtorch_cuda_cpp.so)
+frame #3: c10d::ProcessGroupNCCL::~ProcessGroupNCCL() + 0x118 (0x7ff696d79098 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/site-packages/torch/lib/libtorch_cuda_cpp.so)
+frame #4: c10d::ProcessGroupNCCL::~ProcessGroupNCCL() + 0x9 (0x7ff696d79369 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/site-packages/torch/lib/libtorch_cuda_cpp.so)
+frame #5: <unknown function> + 0xa3daf4 (0x7ff69d286af4 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/site-packages/torch/lib/libtorch_python.so)
+frame #6: <unknown function> + 0x367bd2 (0x7ff69cbb0bd2 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/site-packages/torch/lib/libtorch_python.so)
+frame #7: <unknown function> + 0x368aaf (0x7ff69cbb1aaf in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/site-packages/torch/lib/libtorch_python.so)
+frame #8: /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python() [0x4ad117]
+frame #9: /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python() [0x550704]
+frame #10: /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python() [0x56a346]
+frame #11: /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python() [0x4a66ec]
+frame #12: _PyGC_CollectNoFail + 0x2b (0x57821b in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python)
+frame #13: Py_FinalizeEx + 0x67 (0x572c97 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python)
+frame #14: Py_Exit + 0x8 (0x57cf78 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python)
+frame #15: /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python() [0x57ca82]
+frame #16: PyErr_PrintEx + 0x35 (0x573a15 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python)
+frame #17: PyRun_SimpleStringFlags + 0x63 (0x569d53 in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python)
+frame #18: /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python() [0x5490d7]
+frame #19: _Py_UnixMain + 0x3c (0x548fec in /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python)
+frame #20: __libc_start_main + 0xe5 (0x7ff6d716c7e5 in /lib64/libc.so.6)
+frame #21: /nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/bin/python() [0x548e9e]
+
+^CTraceback (most recent call last):
+  File "multi-run.py", line 353, in <module>
+    p.join()
+  File "/nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/multiprocessing/process.py", line 140, in join
+    res = self._popen.wait(timeout)
+  File "/nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/multiprocessing/popen_fork.py", line 48, in wait
+    return self.poll(os.WNOHANG if timeout == 0.0 else 0)
+  File "/nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/multiprocessing/popen_fork.py", line 28, in poll
+    pid, sts = os.waitpid(self.pid, flag)
+KeyboardInterrupt
+^CError in atexit._run_exitfuncs:
+Traceback (most recent call last):
+  File "/nfshomes/nkadawed/miniconda3/envs/gaussian_splatting/lib/python3.7/multiprocessing/popen_fork.py", line 28, in poll
+    pid, sts = os.waitpid(self.pid, flag)
+KeyboardInterrupt
+^C
+(gaussian_splatting) bash-4.4$ exit
