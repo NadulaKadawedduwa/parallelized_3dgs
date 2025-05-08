@@ -37,6 +37,8 @@ run the following to train with two gpus for resolution 1/8 files, for 200 itera
 python multi-run.py -s ./bicycle/ --iterations 200 -r 8 --num_gpu=2
 # OR
 python train.py -s data/bicycle/ --iterations 200
+# FOR WORKING_MODIFIED
+torchrun --nproc_per_node=2 train.py -s ./bicycle/ --iterations 200 -r 8
 ```
 
 TODO: Fix bugs in call to rasterize c file in line 102 of gaussian_renderer/__init__.py
