@@ -25,6 +25,13 @@ from arguments import ModelParams, PipelineParams, OptimizationParams
 
 import multiprocessing
 import torch.distributed as dist
+import logging
+
+# Completely disable logging
+logging.basicConfig(level=logging.CRITICAL)
+logger = logging.getLogger('diff_gaussian_rasterization')
+logger.disabled = True
+logger.propagate = False
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -45,17 +52,13 @@ except:
     SPARSE_ADAM_AVAILABLE = False
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
-    rank = dist.get_rank()
+
     if not SPARSE_ADAM_AVAILABLE and opt.optimizer_type == "sparse_adam":
         sys.exit(f"Trying to use sparse adam but it is not installed, please install the correct rasterizer using pip install [3dgs_accel].")
 
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree, opt.optimizer_type)
-    
-    # Ensure all processes wait for rank 0 to finish setup
-    dist.barrier()
-    
     scene = Scene(dataset, gaussians)
     gaussians.training_setup(opt)
     if checkpoint:
@@ -76,10 +79,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     ema_loss_for_log = 0.0
     ema_Ll1depth_for_log = 0.0
 
-    if rank == 0:
-        progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
+    progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
     first_iter += 1
-
+    # print(torch.cuda.memory_summary())
     for iteration in range(first_iter, opt.iterations + 1):
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -161,16 +163,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
             ema_Ll1depth_for_log = 0.4 * Ll1depth + 0.6 * ema_Ll1depth_for_log
 
-            if rank == 0:
-                if iteration % 10 == 0:
-                    progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}", "Depth Loss": f"{ema_Ll1depth_for_log:.{7}f}"})
-                    progress_bar.update(10)
-                if iteration == opt.iterations:
-                    progress_bar.close()
+            if iteration % 10 == 0:
+                progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}", "Depth Loss": f"{ema_Ll1depth_for_log:.{7}f}"})
+                progress_bar.update(10)
+            if iteration == opt.iterations:
+                progress_bar.close()
 
             # Log and save
             training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background, 1., SPARSE_ADAM_AVAILABLE, None, dataset.train_test_exp), dataset.train_test_exp)
-            if (iteration in saving_iterations) and rank == 0:
+            if (iteration in saving_iterations):
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
                 scene.save(iteration)
 
@@ -199,40 +200,34 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     gaussians.optimizer.step()
                     gaussians.optimizer.zero_grad(set_to_none = True)
 
-            if (iteration in checkpoint_iterations) and rank == 0:
+            if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
 
 def prepare_output_and_logger(args):    
-    rank = dist.get_rank()
     if not args.model_path:
         if os.getenv('OAR_JOB_ID'):
             unique_str=os.getenv('OAR_JOB_ID')
         else:
             unique_str = str(uuid.uuid4())
         args.model_path = os.path.join("./output/", unique_str[0:10])
-    
-    # Create output directory on all processes
-    os.makedirs(args.model_path, exist_ok = True)
-    dist.barrier()  # Ensure directory is created on all processes
         
-    # Set up output folder and logging only on rank 0
-    if rank == 0:
-        print("Output folder: {}".format(args.model_path))
-        with open(os.path.join(args.model_path, "cfg_args"), 'w') as cfg_log_f:
-            cfg_log_f.write(str(Namespace(**vars(args))))
+    # Set up output folder
+    print("Output folder: {}".format(args.model_path))
+    os.makedirs(args.model_path, exist_ok = True)
+    with open(os.path.join(args.model_path, "cfg_args"), 'w') as cfg_log_f:
+        cfg_log_f.write(str(Namespace(**vars(args))))
 
     # Create Tensorboard writer
     tb_writer = None
-    if TENSORBOARD_FOUND and rank == 0:
+    if TENSORBOARD_FOUND:
         tb_writer = SummaryWriter(args.model_path)
-    elif rank == 0:
+    else:
         print("Tensorboard not available: not logging progress")
     return tb_writer
 
 def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, scene : Scene, renderFunc, renderArgs, train_test_exp):
-    rank = dist.get_rank()
-    if tb_writer and rank == 0:
+    if tb_writer:
         tb_writer.add_scalar('train_loss_patches/l1_loss', Ll1.item(), iteration)
         tb_writer.add_scalar('train_loss_patches/total_loss', loss.item(), iteration)
         tb_writer.add_scalar('iter_time', elapsed, iteration)
@@ -253,7 +248,7 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
                     if train_test_exp:
                         image = image[..., image.shape[-1] // 2:]
                         gt_image = gt_image[..., gt_image.shape[-1] // 2:]
-                    if tb_writer and rank == 0 and (idx < 5):
+                    if tb_writer and (idx < 5):
                         tb_writer.add_images(config['name'] + "_view_{}/render".format(viewpoint.image_name), image[None], global_step=iteration)
                         if iteration == testing_iterations[0]:
                             tb_writer.add_images(config['name'] + "_view_{}/ground_truth".format(viewpoint.image_name), gt_image[None], global_step=iteration)
@@ -261,18 +256,18 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
                     psnr_test += psnr(image, gt_image).mean().double()
                 psnr_test /= len(config['cameras'])
                 l1_test /= len(config['cameras'])          
-                if rank == 0:
-                    print("\n[ITER {}] Evaluating {}: L1 {} PSNR {}".format(iteration, config['name'], l1_test, psnr_test))
-                    if tb_writer:
-                        tb_writer.add_scalar(config['name'] + '/loss_viewpoint - l1_loss', l1_test, iteration)
-                        tb_writer.add_scalar(config['name'] + '/loss_viewpoint - psnr', psnr_test, iteration)
+                print("\n[ITER {}] Evaluating {}: L1 {} PSNR {}".format(iteration, config['name'], l1_test, psnr_test))
+                if tb_writer:
+                    tb_writer.add_scalar(config['name'] + '/loss_viewpoint - l1_loss', l1_test, iteration)
+                    tb_writer.add_scalar(config['name'] + '/loss_viewpoint - psnr', psnr_test, iteration)
 
-        if tb_writer and rank == 0:
+        if tb_writer:
             tb_writer.add_histogram("scene/opacity_histogram", scene.gaussians.get_opacity, iteration)
             tb_writer.add_scalar('total_points', scene.gaussians.get_xyz.shape[0], iteration)
         torch.cuda.empty_cache()
 
 def main(gpu_id):
+    # dist.init_process_group(backend="nccl")
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")
     lp = ModelParams(parser)
@@ -291,9 +286,7 @@ def main(gpu_id):
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
     
-    rank = dist.get_rank()
-    if rank == 0:
-        print("Optimizing " + args.model_path)
+    print("Optimizing " + args.model_path)
 
     # Initialize system state (RNG)
     safe_state(args.quiet, gpu_id)
@@ -304,14 +297,30 @@ def main(gpu_id):
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
     training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
 
-    if rank == 0:
-        print("\nTraining complete.")
+    # All done
+    #dist.barrier()
+    #dist.destroy_process_group()
+    print("\nTraining complete.")
+    #raise SystemExit("Exiting process")
 
 if __name__ == "__main__":
+    #num_gpus = torch.cuda.device_count()
+    #print(f"Number of available GPUs: {num_gpus}")
     dist.init_process_group(backend="nccl")
+    
     rank = dist.get_rank()
     world_size = dist.get_world_size()
-    if rank == 0:
-        print(f"Rank is {rank} and world size is {world_size}")
+    print(f"Rank is {rank} and world size is {world_size}")
     main(rank)
+    #multiprocessing.set_start_method("spawn")
+    #processes = []
+    #for gpu_id in [0,1]:
+        #print(f"Started process {gpu_id}")
+        #p = multiprocessing.Process(target=main, args=(gpu_id,))
+        #p.start()
+        #processes.append(p)
+
+    #for p in processes:
+        #p.join()
     dist.destroy_process_group()
+    #sys.exit(0)
