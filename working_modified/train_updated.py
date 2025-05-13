@@ -52,6 +52,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree, opt.optimizer_type)
+    
+    # Ensure all processes wait for rank 0 to finish setup
+    dist.barrier()
+    
     scene = Scene(dataset, gaussians)
     gaussians.training_setup(opt)
     if checkpoint:
@@ -94,7 +98,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         iter_start.record()
 
-        gaussians.update_learning_rate(iteration)
+        gaussians.update_learning_rate(iteration, dist.get_world_size())
 
         # Every 1000 its we increase the levels of SH up to a maximum degree
         if iteration % 1000 == 0:
@@ -207,11 +211,14 @@ def prepare_output_and_logger(args):
         else:
             unique_str = str(uuid.uuid4())
         args.model_path = os.path.join("./output/", unique_str[0:10])
+    
+    # Create output directory on all processes
+    os.makedirs(args.model_path, exist_ok = True)
+    dist.barrier()  # Ensure directory is created on all processes
         
-    # Set up output folder
+    # Set up output folder and logging only on rank 0
     if rank == 0:
         print("Output folder: {}".format(args.model_path))
-        os.makedirs(args.model_path, exist_ok = True)
         with open(os.path.join(args.model_path, "cfg_args"), 'w') as cfg_log_f:
             cfg_log_f.write(str(Namespace(**vars(args))))
 
