@@ -27,11 +27,22 @@ import multiprocessing
 import torch.distributed as dist
 import logging
 
-# Completely disable logging
+# Create a filter to block all messages except tqdm
+class TqdmFilter(logging.Filter):
+    def filter(self, record):
+        return 'tqdm' in record.name
+
+# Configure logging to block everything except tqdm
 logging.basicConfig(level=logging.CRITICAL)
-logger = logging.getLogger('diff_gaussian_rasterization')
-logger.disabled = True
-logger.propagate = False
+# Add filter to root logger
+root_logger = logging.getLogger()
+root_logger.addFilter(TqdmFilter())
+# Disable all other loggers
+for logger_name in logging.root.manager.loggerDict:
+    if logger_name != 'tqdm':
+        logger = logging.getLogger(logger_name)
+        logger.disabled = True
+        logger.propagate = False
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -211,19 +222,34 @@ def prepare_output_and_logger(args):
         else:
             unique_str = str(uuid.uuid4())
         args.model_path = os.path.join("./output/", unique_str[0:10])
-        
-    # Set up output folder
-    print("Output folder: {}".format(args.model_path))
-    os.makedirs(args.model_path, exist_ok = True)
-    with open(os.path.join(args.model_path, "cfg_args"), 'w') as cfg_log_f:
-        cfg_log_f.write(str(Namespace(**vars(args))))
+    
+    # Broadcast the model path to all ranks
+    if dist.is_initialized():
+        model_path_tensor = torch.tensor([ord(c) for c in args.model_path], dtype=torch.long, device='cuda')
+        dist.broadcast(model_path_tensor, src=0)
+        if dist.get_rank() != 0:
+            args.model_path = ''.join([chr(i) for i in model_path_tensor.cpu().numpy()])
+    
+    # Create output directory on all ranks
+    os.makedirs(args.model_path, exist_ok=True)
+    
+    # Only rank 0 handles logging setup
+    if dist.get_rank() == 0:
+        print("Output folder: {}".format(args.model_path))
+        with open(os.path.join(args.model_path, "cfg_args"), 'w') as cfg_log_f:
+            cfg_log_f.write(str(Namespace(**vars(args))))
 
-    # Create Tensorboard writer
+    # Create Tensorboard writer only for rank 0
     tb_writer = None
-    if TENSORBOARD_FOUND:
+    if TENSORBOARD_FOUND and dist.get_rank() == 0:
         tb_writer = SummaryWriter(args.model_path)
-    else:
+    elif dist.get_rank() == 0:
         print("Tensorboard not available: not logging progress")
+    
+    # Ensure all ranks wait for directory creation
+    if dist.is_initialized():
+        dist.barrier()
+    
     return tb_writer
 
 def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, scene : Scene, renderFunc, renderArgs, train_test_exp):
@@ -256,7 +282,8 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
                     psnr_test += psnr(image, gt_image).mean().double()
                 psnr_test /= len(config['cameras'])
                 l1_test /= len(config['cameras'])          
-                print("\n[ITER {}] Evaluating {}: L1 {} PSNR {}".format(iteration, config['name'], l1_test, psnr_test))
+                if dist.get_rank() == 0:
+                    print("\n[ITER {}] Evaluating {}: L1 {} PSNR {}".format(iteration, config['name'], l1_test, psnr_test))
                 if tb_writer:
                     tb_writer.add_scalar(config['name'] + '/loss_viewpoint - l1_loss', l1_test, iteration)
                     tb_writer.add_scalar(config['name'] + '/loss_viewpoint - psnr', psnr_test, iteration)
@@ -267,7 +294,6 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
         torch.cuda.empty_cache()
 
 def main(gpu_id):
-    # dist.init_process_group(backend="nccl")
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")
     lp = ModelParams(parser)
@@ -286,7 +312,8 @@ def main(gpu_id):
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
     
-    print("Optimizing " + args.model_path)
+    if dist.get_rank() == 0:
+        print("Optimizing " + args.model_path)
 
     # Initialize system state (RNG)
     safe_state(args.quiet, gpu_id)
@@ -298,29 +325,15 @@ def main(gpu_id):
     training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
 
     # All done
-    #dist.barrier()
-    #dist.destroy_process_group()
-    print("\nTraining complete.")
-    #raise SystemExit("Exiting process")
+    if dist.get_rank() == 0:
+        print("\nTraining complete.")
 
 if __name__ == "__main__":
-    #num_gpus = torch.cuda.device_count()
-    #print(f"Number of available GPUs: {num_gpus}")
     dist.init_process_group(backend="nccl")
     
     rank = dist.get_rank()
     world_size = dist.get_world_size()
-    print(f"Rank is {rank} and world size is {world_size}")
+    if rank == 0:
+        print(f"Rank is {rank} and world size is {world_size}")
     main(rank)
-    #multiprocessing.set_start_method("spawn")
-    #processes = []
-    #for gpu_id in [0,1]:
-        #print(f"Started process {gpu_id}")
-        #p = multiprocessing.Process(target=main, args=(gpu_id,))
-        #p.start()
-        #processes.append(p)
-
-    #for p in processes:
-        #p.join()
     dist.destroy_process_group()
-    #sys.exit(0)
