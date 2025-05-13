@@ -322,18 +322,47 @@ def main(gpu_id):
     if not args.disable_viewer:
         network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
-
-    # All done
-    if dist.get_rank() == 0:
-        print("\nTraining complete.")
+    
+    try:
+        training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
+        
+        # All done
+        if dist.get_rank() == 0:
+            print("\nTraining complete.")
+            sys.stdout.flush()  # Ensure the message is printed
+        
+        # Clean shutdown
+        try:
+            dist.barrier()  # Wait for all processes to finish
+        except Exception as e:
+            if dist.get_rank() == 0:
+                print(f"Warning: Error during cleanup: {e}")
+                sys.stdout.flush()
+    except Exception as e:
+        if dist.get_rank() == 0:
+            print(f"\nError during training: {e}")
+            sys.stdout.flush()
+    finally:
+        try:
+            dist.destroy_process_group()
+        except:
+            pass
 
 if __name__ == "__main__":
-    dist.init_process_group(backend="nccl")
-    
-    rank = dist.get_rank()
-    world_size = dist.get_world_size()
-    if rank == 0:
-        print(f"Rank is {rank} and world size is {world_size}")
-    main(rank)
-    dist.destroy_process_group()
+    try:
+        dist.init_process_group(backend="nccl")
+        
+        rank = dist.get_rank()
+        world_size = dist.get_world_size()
+        if rank == 0:
+            print(f"Rank is {rank} and world size is {world_size}")
+            sys.stdout.flush()
+        main(rank)
+    except Exception as e:
+        print(f"Error in main process: {e}")
+        sys.stdout.flush()
+    finally:
+        try:
+            dist.destroy_process_group()
+        except:
+            pass
