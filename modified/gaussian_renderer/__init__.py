@@ -86,11 +86,10 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     else:
         colors_precomp = override_color
 
-    print("Before rasterizer runs")
-    print(torch.cuda.memory_summary())
+    # print("Before rasterizer runs")
+    # print(torch.cuda.memory_summary())
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     if separate_sh:
-        print("Sepearate sh ran")
         rendered_image, radii, depth_image = rasterizer(
             means3D = means3D,
             means2D = means2D,
@@ -102,7 +101,6 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             rotations = rotations,
             cov3D_precomp = cov3D_precomp)
     else:
-        print("The other reaster ran")
         rendered_image, radii, depth_image = rasterizer(
             means3D = means3D,
             means2D = means2D,

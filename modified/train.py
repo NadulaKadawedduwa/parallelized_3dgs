@@ -90,6 +90,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     ema_loss_for_log = 0.0
     ema_Ll1depth_for_log = 0.0
 
+    #if(rank == 0):
     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
     first_iter += 1
     # print(torch.cuda.memory_summary())
@@ -118,12 +119,27 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             gaussians.oneupSHdegree()
 
         # Pick a random Camera
-        if not viewpoint_stack:
-            viewpoint_stack = scene.getTrainCameras().copy()
-            viewpoint_indices = list(range(len(viewpoint_stack)))
-        rand_idx = randint(0, len(viewpoint_indices) - 1)
-        viewpoint_cam = viewpoint_stack.pop(rand_idx)
-        vind = viewpoint_indices.pop(rand_idx)
+        #if not viewpoint_stack:
+        #    viewpoint_stack = scene.getTrainCameras().copy()
+        #    viewpoint_indices = list(range(len(viewpoint_stack)))
+        #rand_idx = randint(0, len(viewpoint_indices) - 1)
+        #viewpoint_cam = viewpoint_stack.pop(rand_idx)
+        #vind = viewpoint_indices.pop(rand_idx)
+
+        #if not viewpoint_stack:
+        #    viewpoint_stack = scene.getTrainCameras().copy()
+        #    viewpoint_indices = list(range(len(viewpoint_stack)))
+        selected_viewpoints = []
+        for _ in range(world_size):
+            if not viewpoint_stack:
+                viewpoint_stack = scene.getTrainCameras().copy()
+                viewpoint_indices = list(range(len(viewpoint_stack)))
+
+            #print(f"The selected views is {selected_viewpoints}")
+            rand_idx = randint(0, len(viewpoint_indices) - 1)
+            selected_viewpoints.append(viewpoint_stack.pop(rand_idx))
+            viewpoint_indices.pop(rand_idx)
+        viewpoint_cam = selected_viewpoints[rank]
 
         # Render
         if (iteration - 1) == debug_from:

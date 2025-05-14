@@ -1,3 +1,4 @@
 references:
 
 https://github.com/nyu-systems/Grendel-GS?tab=readme-ov-file#rendering
+https://github.com/graphdeco-inria/gaussian-splatting/tree/main

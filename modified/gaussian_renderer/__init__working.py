@@ -15,20 +15,15 @@ from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianR
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
 
-# TODO: CHECK https://claude.ai/share/b83f6d0f-3e62-4964-aea9-e20968397cdf FOR THE RANK
-
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, separate_sh = False, override_color = None, use_trained_exp=False):
     """
     Render the scene. 
     
     Background tensor (bg_color) must be on GPU!
     """
-    
-    device = pc.get_xyz.device
-    print(f"render(): Device is {device}.")
-
+ 
     # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
-    screenspace_points = torch.zeros_like(pc.get_xyz, dtype=pc.get_xyz.dtype, requires_grad=True, device=device) + 0
+    screenspace_points = torch.zeros_like(pc.get_xyz, dtype=pc.get_xyz.dtype, requires_grad=True, device="cuda") + 0
     try:
         screenspace_points.retain_grad()
     except:
@@ -38,23 +33,17 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
     tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
 
-    # Ensure all tensors are on the same device
-    world_view_transform = viewpoint_camera.world_view_transform.to(device)
-    full_proj_transform = viewpoint_camera.full_proj_transform.to(device)
-    camera_center = viewpoint_camera.camera_center.to(device)
-    bg_color_device = bg_color.to(device)
-
     raster_settings = GaussianRasterizationSettings(
         image_height=int(viewpoint_camera.image_height),
         image_width=int(viewpoint_camera.image_width),
         tanfovx=tanfovx,
         tanfovy=tanfovy,
-        bg=bg_color_device,
+        bg=bg_color,
         scale_modifier=scaling_modifier,
-        viewmatrix=world_view_transform,
-        projmatrix=full_proj_transform,
+        viewmatrix=viewpoint_camera.world_view_transform,
+        projmatrix=viewpoint_camera.full_proj_transform,
         sh_degree=pc.active_sh_degree,
-        campos=camera_center,
+        campos=viewpoint_camera.camera_center,
         prefiltered=False,
         debug=pipe.debug,
         antialiasing=pipe.antialiasing
@@ -85,7 +74,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     if override_color is None:
         if pipe.convert_SHs_python:
             shs_view = pc.get_features.transpose(1, 2).view(-1, 3, (pc.max_sh_degree+1)**2)
-            dir_pp = (pc.get_xyz - camera_center.repeat(pc.get_features.shape[0], 1))
+            dir_pp = (pc.get_xyz - viewpoint_camera.camera_center.repeat(pc.get_features.shape[0], 1))
             dir_pp_normalized = dir_pp/dir_pp.norm(dim=1, keepdim=True)
             sh2rgb = eval_sh(pc.active_sh_degree, shs_view, dir_pp_normalized)
             colors_precomp = torch.clamp_min(sh2rgb + 0.5, 0.0)
@@ -97,11 +86,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     else:
         colors_precomp = override_color
 
-    print("Before rasterizer runs")
-    print(torch.cuda.memory_summary())
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     if separate_sh:
-        print("Sepearate sh ran")
         rendered_image, radii, depth_image = rasterizer(
             means3D = means3D,
             means2D = means2D,
@@ -113,7 +99,6 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             rotations = rotations,
             cov3D_precomp = cov3D_precomp)
     else:
-        print("The other reaster ran")
         rendered_image, radii, depth_image = rasterizer(
             means3D = means3D,
             means2D = means2D,
@@ -123,9 +108,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             scales = scales,
             rotations = rotations,
             cov3D_precomp = cov3D_precomp)
-    
-    #print("after rasterizer ran")
-    #print(torch.cuda.memory_summary())
+        
     # Apply exposure to rendered image (training only)
     if use_trained_exp:
         exposure = pc.get_exposure_from_name(viewpoint_camera.image_name)
