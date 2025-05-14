@@ -1,4 +1,9 @@
 # cmsc714-group-prj-Spring25
+## Clone original implementation
+```
+git clone https://github.com/graphdeco-inria/gaussian-splatting --recursive
+```
+
 
 ## Original dataset used in paper:
 https://storage.googleapis.com/gresearch/refraw360/360_v2.zip
