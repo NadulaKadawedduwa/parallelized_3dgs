@@ -26,24 +26,16 @@ Replace files in gaussian_splatting directory with the ones in modified. Request
 srun --partition=dpart --qos=medium --gres=gpu:2 --time 0:20:0 --pty bash
 # OR
 srun --partition=dpart --qos=normal --gres=gpu:a100:2 --time 0:20:0 --pty bash 
-# OR
-srun --partition=gpu --qos=normal --gres=gpu:a100_1g.5gb:2 --time 0:20:0 --pty bash
 ```
 Note:
 ```bash
-# zaratan (/home/nguyqu03/scratch.cmsc714/) has --qos = normal, scavenger, high, gpu
+# zaratan (/.../scratch.cmsc714/) has --qos = normal, scavenger, high, gpu
 ```
 run the following to train with two gpus for resolution 1/8 files, for 200 iterations:
 
 ```bash
-python multi-run.py -s ./bicycle/ --iterations 200 -r 8 --num_gpu=2
-# OR
-python train.py -s data/bicycle/ --iterations 200
-# FOR WORKING_MODIFIED
-torchrun --nproc_per_node=2 train.py -s ./bicycle/ --iterations 200 -r 8
+torchrun --nproc_per_node=2 train.py -s ./bicycle/ --test_iterations 200 --iterations 200 -r 8
 ```
-
-TODO: Fix bugs in call to rasterize c file in line 102 of gaussian_renderer/__init__.py
 
 ## How to run profiling:
 <!-- Check `./profiling/README.md` -->
