@@ -3,12 +3,7 @@
 ```
 git clone https://github.com/graphdeco-inria/gaussian-splatting --recursive
 ```
-
-
-## Original dataset used in paper:
-https://storage.googleapis.com/gresearch/refraw360/360_v2.zip
-
-We use images from `360_v2/bicycle/images_8` (resolution 1/8 files)
+## Replace files with versions from this repo
 
 ## How to set up environment
 Check `./setup_env/README.md`
@@ -43,7 +38,12 @@ python -m cProfile -o profiling_results/profile_train.prof train.py -s data/bicy
 Step 2:
 ```bash
 python pyProfile.py
+
 ```
+## Original dataset used in paper:
+https://storage.googleapis.com/gresearch/refraw360/360_v2.zip
+
+We use images from `360_v2/bicycle/images_8` (resolution 1/8 files)
 
 ### Cuda
 
