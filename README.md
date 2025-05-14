@@ -3,7 +3,7 @@
 ```
 git clone https://github.com/graphdeco-inria/gaussian-splatting --recursive
 ```
-## Replace files with versions from this repo
+## Replace files with versions from the "modified" folder
 
 ## How to set up environment
 Check `./setup_env/README.md`
