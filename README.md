@@ -7,17 +7,6 @@ We use images from `360_v2/bicycle/images_8` (resolution 1/8 files)
 
 ## How to set up environment
 Check `./setup_env/README.md`
-OR
-1. Load modules:
-```bash
-module load cuda/11.6.2
-```
-1. Activate Conda env for gaussian_splatting:
-```bash
-conda activate gaussian_splatting
-# OR if not detected
-source .../miniconda3/bin/activate gaussian_splatting
-```
 
 ## How to set up batching and running code
 Replace files in gaussian_splatting directory with the ones in modified. Request a 20 minute bash session with 2 gpus:
