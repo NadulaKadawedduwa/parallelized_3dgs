@@ -14,7 +14,9 @@ module load cuda/11.6.2
 ```
 1. Activate Conda env for gau_splatting:
 ```bash
-source /home/nguyqu03/miniconda3/bin/activate gaussian_splatting_1
+conda activate gaussian_splatting
+# OR if not detected
+source .../miniconda3/bin/activate gaussian_splatting
 ```
 
 ## How to set up batching and running code
