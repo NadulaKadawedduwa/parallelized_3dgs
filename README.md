@@ -3,7 +3,7 @@
 ## Original dataset used in paper:
 https://storage.googleapis.com/gresearch/refraw360/360_v2.zip
 
-Quan: I use images from `360_v2/bicycle/images_8` (resolution 1/8 files)
+We use images from `360_v2/bicycle/images_8` (resolution 1/8 files)
 
 ## How to set up environment
 Check `./setup_env/README.md`
