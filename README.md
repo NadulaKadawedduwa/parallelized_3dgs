@@ -9,7 +9,7 @@ git clone https://github.com/graphdeco-inria/gaussian-splatting --recursive
 Check `./setup_env/README.md`
 
 ## How to set up batching and running code
-Replace files in gaussian_splatting directory with the ones in modified. Request a 20 minute bash session with 2 gpus:
+Request a 20 minute bash session with 2 gpus:
 
 ```bash
 srun --partition=dpart --qos=medium --gres=gpu:2 --time 0:20:0 --pty bash
