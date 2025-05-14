@@ -12,7 +12,7 @@ OR
 ```bash
 module load cuda/11.6.2
 ```
-1. Activate Conda env for gau_splatting:
+1. Activate Conda env for gaussian_splatting:
 ```bash
 conda activate gaussian_splatting
 # OR if not detected
