@@ -1,4 +1,4 @@
-# cmsc714-group-prj-Spring25
+Set Up for Parallel Gaussian Splatting
 ## Clone original implementation
 ```
 git clone https://github.com/graphdeco-inria/gaussian-splatting --recursive
